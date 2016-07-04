@@ -2,6 +2,9 @@
 authors = ["Konstantin Stepanov <konstantin.stepanov@adform.com>"]
 name = "cargo-pkgbuild"
 version = "0.1.0"
+readme = "README.md"
+description = "ArchLinux's PKGBULD generator from Cargo.toml manifest file"
+license = "MIT/Apache-2.0"
 
 [dependencies]
 rustc-serialize = "0.3.19"
