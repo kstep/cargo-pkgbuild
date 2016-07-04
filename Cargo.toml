@@ -1,0 +1,8 @@
+[package]
+authors = ["Konstantin Stepanov <konstantin.stepanov@adform.com>"]
+name = "cargo-pkgbuild"
+version = "0.1.0"
+
+[dependencies]
+rustc-serialize = "0.3.19"
+toml = "0.1.30"
