@@ -1,5 +1,5 @@
 [package]
-authors = ["Konstantin Stepanov <konstantin.stepanov@adform.com>"]
+authors = ["Konstantin Stepanov <me@kstep.me>"]
 name = "cargo-pkgbuild"
 version = "0.1.0"
 readme = "README.md"
