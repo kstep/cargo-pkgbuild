@@ -45,6 +45,10 @@ fn read_manifest(manifest: &Path) -> io::Result<Cargo> {
         })
 }
 
+fn escape(s: &str) -> String {
+    s.chars().flat_map(char::escape_default).collect()
+}
+
 fn generate_pkgbuild(manifest: &Cargo, output: &mut Write) -> io::Result<()> {
     for author in &manifest.package.authors {
         try!(writeln!(output, "# Maintainer: {}", author));
@@ -56,7 +60,7 @@ fn generate_pkgbuild(manifest: &Cargo, output: &mut Write) -> io::Result<()> {
     try!(writeln!(output, "makedepends=('rust' 'cargo')"));
     try!(writeln!(output, "arch=('i686' 'x86_64' 'armv6h' 'armv7h')"));
     if let Some(ref desc) = manifest.package.description {
-        try!(writeln!(output, "pkgdesc=\"{}\"", desc.chars().flat_map(char::escape_default).collect::<String>()));
+        try!(writeln!(output, "pkgdesc=\"{}\"", escape(desc)));
     }
     if let Some(ref url) = manifest.package.homepage {
         try!(writeln!(output, "url=\"{}\"", url));
