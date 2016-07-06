@@ -56,10 +56,10 @@ fn generate_pkgbuild(manifest: &Cargo, output: &mut Write) -> io::Result<()> {
     try!(writeln!(output, "makedepends=('rust' 'cargo')"));
     try!(writeln!(output, "arch=('i686' 'x86_64' 'armv6h' 'armv7h')"));
     if let Some(ref desc) = manifest.package.description {
-        try!(writeln!(output, "pkgdesc='{}'", desc));
+        try!(writeln!(output, "pkgdesc=\"{}\"", desc.chars().flat_map(char::escape_default).collect::<String>()));
     }
     if let Some(ref url) = manifest.package.homepage {
-        try!(writeln!(output, "url='{}'", url));
+        try!(writeln!(output, "url=\"{}\"", url));
     }
     if let Some(ref license) = manifest.package.license {
         try!(writeln!(output, "license=('{}')", license));
