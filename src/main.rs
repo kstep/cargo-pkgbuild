@@ -79,7 +79,7 @@ build() {{
         try!(write!(output, r#"
 package() {{
     cd $srcdir
-    cargo install --root="$pkgdir" --git={}
+    cargo install --root="$pkgdir/usr" --git={}
 }}
 "#, repo));
     } else {
