@@ -1,13 +1,14 @@
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 extern crate toml;
 
 use std::process::Command;
 use std::path::{PathBuf, Path};
 use std::fs::File;
 use std::io::{self, Read, Write};
-use rustc_serialize::json;
 
-#[derive(RustcDecodable, Debug)]
+#[derive(Deserialize, Debug)]
 struct CargoPackage {
     name: String,
     version: String,
@@ -19,19 +20,20 @@ struct CargoPackage {
     license: Option<String>,
 }
 
-#[derive(RustcDecodable, Debug)]
+#[derive(Deserialize, Debug)]
 struct Cargo {
     package: CargoPackage,
 }
 
-#[derive(RustcDecodable, Debug)]
+#[derive(Deserialize, Debug)]
 struct CargoLocation {
     root: String
 }
 
 fn get_manifest_path() -> PathBuf {
     let output = Command::new("cargo").arg("locate-project").output().unwrap();
-    json::decode::<CargoLocation>(&String::from_utf8(output.stdout).unwrap()).unwrap().root.into()
+    serde_json::from_str::<CargoLocation>(&String::from_utf8(output.stdout).unwrap())
+        .unwrap().root.into()
 }
 
 fn read_manifest(manifest: &Path) -> io::Result<Cargo> {
@@ -41,7 +43,7 @@ fn read_manifest(manifest: &Path) -> io::Result<Cargo> {
             f.read_to_string(&mut buf).map(|_| buf)
         })
         .map(|buf| {
-            toml::decode_str(&buf).unwrap()
+            toml::from_str(&buf).unwrap()
         })
 }
 
