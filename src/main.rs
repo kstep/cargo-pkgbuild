@@ -11,7 +11,6 @@ struct CargoPackage {
     version: String,
     description: Option<String>,
     authors: Vec<String>,
-    keywords: Option<Vec<String>>,
     homepage: Option<String>,
     license: Option<String>,
 }
