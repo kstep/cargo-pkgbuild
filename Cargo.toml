@@ -1,6 +1,6 @@
 [package]
 authors = ["Konstantin Stepanov <me@kstep.me>"]
-description = "ArchLinux's PKGBULD generator from Cargo.toml manifest file"
+description = "ArchLinux's PKGBUILD generator from Cargo.toml manifest file"
 homepage = "https://github.com/kstep/cargo-pkgbuild"
 license = "MIT/Apache-2.0"
 name = "cargo-pkgbuild"
