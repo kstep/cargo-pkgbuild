@@ -24,13 +24,18 @@ struct Cargo {
 
 #[derive(Deserialize, Debug)]
 struct CargoLocation {
-    root: String
+    root: String,
 }
 
 fn get_manifest_path() -> PathBuf {
-    let output = Command::new("cargo").arg("locate-project").output().unwrap();
+    let output = Command::new("cargo")
+        .arg("locate-project")
+        .output()
+        .unwrap();
     serde_json::from_str::<CargoLocation>(&String::from_utf8(output.stdout).unwrap())
-        .unwrap().root.into()
+        .unwrap()
+        .root
+        .into()
 }
 
 fn read_manifest(manifest: &Path) -> io::Result<Cargo> {
@@ -39,9 +44,7 @@ fn read_manifest(manifest: &Path) -> io::Result<Cargo> {
             let mut buf = String::with_capacity(1024);
             f.read_to_string(&mut buf).map(|_| buf)
         })
-        .map(|buf| {
-            toml::from_str(&buf).unwrap()
-        })
+        .map(|buf| toml::from_str(&buf).unwrap())
 }
 
 fn escape(s: &str) -> String {
@@ -68,25 +71,36 @@ fn generate_pkgbuild(manifest: &Cargo, output: &mut dyn Write) -> io::Result<()>
         writeln!(output, "license=('{}')", license)?;
     }
 
-    write!(output, r#"
+    write!(
+        output,
+        r#"
 build() {{
     return 0
 }}
-"#)?;
+"#
+    )?;
 
     if let Some(ref repo) = manifest.package.repository {
-        write!(output, r#"
+        write!(
+            output,
+            r#"
 package() {{
     cd $srcdir
     cargo install --root="$pkgdir/usr" --git={}
 }}
-"#, repo)?;
+"#,
+            repo
+        )?;
     } else {
-        write!(output, r#"
+        write!(
+            output,
+            r#"
 package() {{
     cargo install --root="$pkgdir" {}
 }}
-"#, manifest.package.name)?;
+"#,
+            manifest.package.name
+        )?;
     }
 
     Ok(())
@@ -95,6 +109,7 @@ package() {{
 fn main() {
     generate_pkgbuild(
         &read_manifest(&get_manifest_path()).unwrap(),
-        &mut File::create("PKGBUILD").unwrap()
-    ).unwrap();
+        &mut File::create("PKGBUILD").unwrap(),
+    )
+    .unwrap();
 }
