@@ -12,7 +12,6 @@ struct CargoPackage {
     description: Option<String>,
     authors: Vec<String>,
     keywords: Option<Vec<String>>,
-    repository: Option<String>,
     homepage: Option<String>,
     license: Option<String>,
 }
@@ -71,37 +70,42 @@ fn generate_pkgbuild(manifest: &Cargo, output: &mut dyn Write) -> io::Result<()>
         writeln!(output, "license=('{}')", license)?;
     }
 
-    write!(
+    writeln!(
+        output,
+        r#"
+# Generated in accordance to https://wiki.archlinux.org/title/Rust_package_guidelines.
+# Might require further modification depending on the package involved.
+prepare() {{
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}}"#
+    )?;
+
+    writeln!(
         output,
         r#"
 build() {{
-    return 0
-}}
-"#
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release --all-features
+}}"#
     )?;
 
-    if let Some(ref repo) = manifest.package.repository {
-        write!(
-            output,
-            r#"
+    writeln!(
+        output,
+        r#"
+check() {{
+  export RUSTUP_TOOLCHAIN=stable
+  cargo test --frozen --all-features
+}}"#
+    )?;
+
+    write!(
+        output,
+        r#"
 package() {{
-    cd $srcdir
-    cargo install --root="$pkgdir/usr" --git={}
-}}
-"#,
-            repo
-        )?;
-    } else {
-        write!(
-            output,
-            r#"
-package() {{
-    cargo install --root="$pkgdir" {}
-}}
-"#,
-            manifest.package.name
-        )?;
-    }
+  install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$pkgname"
+}}"#
+    )?;
 
     Ok(())
 }
