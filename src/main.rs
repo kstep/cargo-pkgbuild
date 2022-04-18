@@ -1,12 +1,9 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate toml;
-
-use std::process::Command;
-use std::path::{PathBuf, Path};
 use std::fs::File;
 use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 struct CargoPackage {
@@ -51,7 +48,7 @@ fn escape(s: &str) -> String {
     s.chars().flat_map(char::escape_default).collect()
 }
 
-fn generate_pkgbuild(manifest: &Cargo, output: &mut Write) -> io::Result<()> {
+fn generate_pkgbuild(manifest: &Cargo, output: &mut dyn Write) -> io::Result<()> {
     for author in &manifest.package.authors {
         writeln!(output, "# Maintainer: {}", author)?;
     }
