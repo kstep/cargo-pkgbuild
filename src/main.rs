@@ -1,8 +1,9 @@
-use std::fs::File;
-use std::io::{self, Read, Write};
+use std::fs::{self, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use anyhow::Context;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -25,31 +26,30 @@ struct CargoLocation {
     root: String,
 }
 
-fn get_manifest_path() -> PathBuf {
+fn get_manifest_path() -> anyhow::Result<PathBuf> {
     let output = Command::new("cargo")
         .arg("locate-project")
         .output()
-        .unwrap();
-    serde_json::from_str::<CargoLocation>(&String::from_utf8(output.stdout).unwrap())
-        .unwrap()
+        .context("Failed to execute `cargo locate-project`")?;
+    let manifest =
+        String::from_utf8(output.stdout).expect("Invalid utf-8 from `cargo locate-project`");
+    let manifest_path = serde_json::from_str::<CargoLocation>(&manifest)
+        .context("Failed to deserialize json output from `cargo locate-project`")?
         .root
-        .into()
+        .into();
+    Ok(manifest_path)
 }
 
-fn read_manifest(manifest: &Path) -> io::Result<Cargo> {
-    File::open(manifest)
-        .and_then(|mut f| {
-            let mut buf = String::with_capacity(1024);
-            f.read_to_string(&mut buf).map(|_| buf)
-        })
-        .map(|buf| toml::from_str(&buf).unwrap())
+fn read_manifest(manifest: &Path) -> anyhow::Result<Cargo> {
+    let buf = fs::read_to_string(manifest).context("Failed to open project manifest")?;
+    toml::from_str(&buf).context("Failed to deserialize project manifest")
 }
 
 fn escape(s: &str) -> String {
     s.chars().flat_map(char::escape_default).collect()
 }
 
-fn generate_pkgbuild(manifest: &Cargo, output: &mut dyn Write) -> io::Result<()> {
+fn generate_pkgbuild(manifest: &Cargo, output: &mut dyn Write) -> anyhow::Result<()> {
     for author in &manifest.package.authors {
         writeln!(output, "# Maintainer: {}", author)?;
     }
@@ -98,7 +98,7 @@ check() {{
 }}"#
     )?;
 
-    write!(
+    writeln!(
         output,
         r#"
 package() {{
@@ -110,9 +110,8 @@ package() {{
 }
 
 fn main() {
-    generate_pkgbuild(
-        &read_manifest(&get_manifest_path()).unwrap(),
-        &mut File::create("PKGBUILD").unwrap(),
-    )
-    .unwrap();
+    let manifest_path = get_manifest_path().unwrap();
+    let manifest = read_manifest(&manifest_path).unwrap();
+    let mut pkgbuild = File::create("PKGBUILD").unwrap();
+    generate_pkgbuild(&manifest, &mut pkgbuild).unwrap();
 }
