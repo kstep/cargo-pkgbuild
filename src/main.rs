@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{self, Command};
 
 use anyhow::Context;
 use serde::Deserialize;
@@ -110,8 +110,16 @@ package() {{
 }
 
 fn main() {
-    let manifest_path = get_manifest_path().unwrap();
-    let manifest = read_manifest(&manifest_path).unwrap();
-    let mut pkgbuild = File::create("PKGBUILD").unwrap();
-    generate_pkgbuild(&manifest, &mut pkgbuild).unwrap();
+    fn exec() -> anyhow::Result<()> {
+        let manifest_path = get_manifest_path().context("Failed to get manifest path")?;
+        let manifest = read_manifest(&manifest_path).context("Failed to read project manifest")?;
+        let mut pkgbuild = File::create("PKGBUILD").context("Failed to create PKGBUILD file")?;
+        generate_pkgbuild(&manifest, &mut pkgbuild).context("Failed to generate PKGBUILD")?;
+        Ok(())
+    }
+
+    if let Err(e) = exec() {
+        eprintln!("Error: {e:?}");
+        process::exit(1)
+    }
 }
