@@ -1,71 +1,45 @@
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::{self, Command};
+use std::{fs::File, io::Write, path::PathBuf, process};
 
-use anyhow::Context;
-use serde::Deserialize;
+use anyhow::{anyhow, Context};
+use cargo_metadata::Package;
 
-#[derive(Deserialize, Debug)]
-struct CargoPackage {
-    name: String,
-    version: String,
-    description: Option<String>,
-    authors: Vec<String>,
-    homepage: Option<String>,
-    license: Option<String>,
-}
+type Result<T> = anyhow::Result<T>;
 
-#[derive(Deserialize, Debug)]
-struct Cargo {
-    package: CargoPackage,
-}
-
-#[derive(Deserialize, Debug)]
-struct CargoLocation {
-    root: String,
-}
-
-fn get_manifest_path() -> anyhow::Result<PathBuf> {
-    let output = Command::new("cargo")
-        .arg("locate-project")
-        .output()
-        .context("Failed to execute `cargo locate-project`")?;
-    let manifest =
-        String::from_utf8(output.stdout).expect("Invalid utf-8 from `cargo locate-project`");
-    let manifest_path = serde_json::from_str::<CargoLocation>(&manifest)
-        .context("Failed to deserialize json output from `cargo locate-project`")?
-        .root
-        .into();
-    Ok(manifest_path)
-}
-
-fn read_manifest(manifest: &Path) -> anyhow::Result<Cargo> {
-    let buf = fs::read_to_string(manifest).context("Failed to open project manifest")?;
-    toml::from_str(&buf).context("Failed to deserialize project manifest")
-}
+const MANIFEST_FILENAME: &str = "Cargo.toml";
 
 fn escape(s: &str) -> String {
     s.chars().flat_map(char::escape_default).collect()
 }
 
-fn generate_pkgbuild(manifest: &Cargo, output: &mut dyn Write) -> anyhow::Result<()> {
-    for author in &manifest.package.authors {
+fn parse_manifest(manifest_path: &PathBuf) -> Result<Package> {
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .manifest_path(&manifest_path)
+        .exec()?;
+    metadata.root_package().cloned().with_context(|| {
+        anyhow!(
+            "`{}` does not contain a root package",
+            manifest_path.display()
+        )
+    })
+}
+
+fn generate_pkgbuild(manifest: &Package, output: &mut dyn Write) -> Result<()> {
+    for author in &manifest.authors {
         writeln!(output, "# Maintainer: {}", author)?;
     }
 
-    writeln!(output, "pkgname={}", manifest.package.name)?;
-    writeln!(output, "pkgver={}", manifest.package.version)?;
+    writeln!(output, "pkgname={}", manifest.name)?;
+    writeln!(output, "pkgver={}", manifest.version)?;
     writeln!(output, "pkgrel=1")?;
     writeln!(output, "makedepends=('rust' 'cargo')")?;
     writeln!(output, "arch=('i686' 'x86_64' 'armv6h' 'armv7h')")?;
-    if let Some(ref desc) = manifest.package.description {
+    if let Some(ref desc) = manifest.description {
         writeln!(output, "pkgdesc=\"{}\"", escape(desc))?;
     }
-    if let Some(ref url) = manifest.package.homepage {
+    if let Some(ref url) = manifest.homepage {
         writeln!(output, "url=\"{}\"", url)?;
     }
-    if let Some(ref license) = manifest.package.license {
+    if let Some(ref license) = manifest.license {
         writeln!(output, "license=('{}')", license)?;
     }
 
@@ -110,9 +84,11 @@ package() {{
 }
 
 fn main() {
-    fn exec() -> anyhow::Result<()> {
-        let manifest_path = get_manifest_path().context("Failed to get manifest path")?;
-        let manifest = read_manifest(&manifest_path).context("Failed to read project manifest")?;
+    fn exec() -> Result<()> {
+        let manifest_path = locate_cargo_manifest::locate_manifest()
+            .with_context(|| anyhow!("Failed to locate `{MANIFEST_FILENAME}`"))?;
+        let manifest = parse_manifest(&manifest_path)
+            .with_context(|| anyhow!("Failed to parse `{}`", manifest_path.display()))?;
         let mut pkgbuild = File::create("PKGBUILD").context("Failed to create PKGBUILD file")?;
         generate_pkgbuild(&manifest, &mut pkgbuild).context("Failed to generate PKGBUILD")?;
         Ok(())
