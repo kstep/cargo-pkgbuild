@@ -1,9 +1,7 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, Result};
 use cargo_metadata::Package;
-
-type Result<T> = anyhow::Result<T>;
 
 const MANIFEST_FILENAME: &str = "Cargo.toml";
 
