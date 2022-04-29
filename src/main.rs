@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write, path::PathBuf, process};
+use std::{fs::File, io::Write, path::PathBuf};
 
 use anyhow::{anyhow, Context};
 use cargo_metadata::Package;
@@ -83,19 +83,12 @@ package() {{
     Ok(())
 }
 
-fn main() {
-    fn exec() -> Result<()> {
-        let manifest_path = locate_cargo_manifest::locate_manifest()
-            .with_context(|| anyhow!("Failed to locate `{MANIFEST_FILENAME}`"))?;
-        let manifest = parse_manifest(&manifest_path)
-            .with_context(|| anyhow!("Failed to parse `{}`", manifest_path.display()))?;
-        let mut pkgbuild = File::create("PKGBUILD").context("Failed to create PKGBUILD file")?;
-        generate_pkgbuild(&manifest, &mut pkgbuild).context("Failed to generate PKGBUILD")?;
-        Ok(())
-    }
-
-    if let Err(e) = exec() {
-        eprintln!("Error: {e:?}");
-        process::exit(1)
-    }
+fn main() -> Result<()> {
+    let manifest_path = locate_cargo_manifest::locate_manifest()
+        .with_context(|| anyhow!("Failed to locate `{MANIFEST_FILENAME}`"))?;
+    let manifest = parse_manifest(&manifest_path)
+        .with_context(|| anyhow!("Failed to parse `{}`", manifest_path.display()))?;
+    let mut pkgbuild = File::create("PKGBUILD").context("Failed to create PKGBUILD file")?;
+    generate_pkgbuild(&manifest, &mut pkgbuild).context("Failed to generate PKGBUILD")?;
+    Ok(())
 }
