@@ -9,7 +9,7 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-anyhow = { version = "1.0" }
+anyhow = "1.0"
 cargo_metadata = "0.14.2"
 locate-cargo-manifest = "0.2.2"
 serde = { version = "1.0", features = ["derive"] }
