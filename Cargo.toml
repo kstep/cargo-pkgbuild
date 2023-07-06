@@ -5,7 +5,7 @@ homepage = "https://github.com/kstep/cargo-pkgbuild"
 license = "MIT/Apache-2.0"
 name = "cargo-pkgbuild"
 readme = "README.md"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
